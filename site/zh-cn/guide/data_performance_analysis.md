@@ -2,13 +2,13 @@
 
 ## 概述
 
-本文假定用户熟悉 TensorFlow [Profiler](https://www.tensorflow.org/guide/profiler) 和 [`tf.data`](https://www.tensorflow.org/guide/data)，旨在提供包含示例的分步说明来帮助用户诊断和修复输入流水线性能问题。
+本文假定用户熟悉 TensorFlow [Profiler](https://tensorflow.google.cn/guide/profiler) 和 [`tf.data`](https://www.tensorflow.org/guide/data)，旨在提供包含示例的分步说明来帮助用户诊断和修复输入流水线性能问题。
 
-首先，请收集您的 TensorFlow 作业的分析。有关如何执行此操作的说明适用于 [CPU/GPU](https://www.tensorflow.org/guide/profiler#collect_performance_data) 和 [Cloud TPU](https://cloud.google.com/tpu/docs/cloud-tpu-tools#capture_profile)。
+首先，请收集您的 TensorFlow 作业的分析。有关如何执行此操作的说明适用于 [CPU/GPU](https://tensorflow.google.cn/guide/profiler#collect_performance_data) 和 [Cloud TPU](https://cloud.google.com/tpu/docs/cloud-tpu-tools#capture_profile)。
 
 ![TensorFlow Trace Viewer](images/data_performance_analysis/trace_viewer.png "The trace viewer page of the TensorFlow Profiler")
 
-下面详细介绍的分析工作流侧重于 Profiler 中的 Trace Viewer 工具。此工具提供了一个时间线，可显示 TensorFlow 程序所执行运算的持续时间，并让您可以确定哪些运算的执行时间最长。有关 Trace Viewer 的更多信息，请查看 TF Profiler 指南的[此部分](https://www.tensorflow.org/guide/profiler#trace_viewer)。通常，`tf.data` 事件会出现在主机 CPU 时间线上。
+下面详细介绍的分析工作流侧重于 Profiler 中的 Trace Viewer 工具。此工具提供了一个时间线，可显示 TensorFlow 程序所执行运算的持续时间，并让您可以确定哪些运算的执行时间最长。有关 Trace Viewer 的更多信息，请查看 TF Profiler 指南的[此部分](https://tensorflow.google.cn/guide/profiler#trace_viewer)。通常，`tf.data` 事件会出现在主机 CPU 时间线上。
 
 ## 分析工作流
 
@@ -20,11 +20,11 @@
 
 为此，请在 Trace Viewer 中查找 `IteratorGetNext::DoCompute` 运算。通常，您希望在步骤开始时就能看到这些信息。这些切片表示输入流水线在被请求时产生一批元素所用的时间。如果您在使用 Keras 或者在 `tf.function` 中迭代您的数据集，应当可以在 `tf_data_iterator_get_next` 线程中找到切片。
 
-请注意，如果您正在使用[分配策略](https://www.tensorflow.org/guide/distributed_training)，则可能会看到 <br>`IteratorGetNextAsOptional::DoCompute` 事件，而不是 `IteratorGetNext::DoCompute`（自 TF 2.3 起）。
+请注意，如果您正在使用[分配策略](https://tensorflow.google.cn/guide/distributed_training)，则可能会看到 <br>`IteratorGetNextAsOptional::DoCompute` 事件，而不是 `IteratorGetNext::DoCompute`（自 TF 2.3 起）。
 
 ![image](images/data_performance_analysis/get_next_fast.png "If your IteratorGetNext::DoCompute calls return quickly, `tf.data` is not your bottleneck.")
 
-**如果调用迅速返回 (<= 50 us)**，这表示您的数据在被请求时可用。输入流水线不是您的瓶颈；请参阅 [Profiler 指南](https://www.tensorflow.org/guide/profiler)，获得更多常规性能分析提示。
+**如果调用迅速返回 (<= 50 us)**，这表示您的数据在被请求时可用。输入流水线不是您的瓶颈；请参阅 [Profiler 指南](https://tensorflow.google.cn/guide/profiler)，获得更多常规性能分析提示。
 
 ![image](images/data_performance_analysis/get_next_slow.png "If your IteratorGetNext::DoCompute calls return slowly, `tf.data` is not producing data quickly enough.")
 
@@ -36,15 +36,15 @@
 
 ![image](images/data_performance_analysis/prefetch.png "If you're prefetching data, you should see a `Iterator::Prefetch` slice in the same stack as the `IteratorGetNext::DoCompute` op.")
 
-**如果您的流水线末尾没有 `prefetch`**，则应相应添加一个。有关 `tf.data` 性能建议的更多信息，请参阅 [tf.data 性能指南](https://www.tensorflow.org/guide/data_performance#prefetching)。
+**如果您的流水线末尾没有 `prefetch`**，则应相应添加一个。有关 `tf.data` 性能建议的更多信息，请参阅 [tf.data 性能指南](https://tensorflow.google.cn/guide/data_performance#prefetching)。
 
 **如果您已经在预提取数据**，并且输入流水线仍然是您的瓶颈，请继续阅读下一部分以进一步分析性能。
 
 ### 3. 您是否达到较高的 CPU 利用率？
 
-`tf.data` 通过尝试最大程度地利用可用资源来实现高吞吐量。通常，即使在 GPU 或 TPU 等加速器上运行模型，`tf.data` 流水线仍在 CPU 上运行。您可以使用 [sar](https://linux.die.net/man/1/sar) 和 [htop](https://en.wikipedia.org/wiki/Htop) 等工具，或者在 [Cloud Monitoring 控制台](console.cloud.google.com/compute/instances)中（如果在 GCP 上运行）检查 CPU 利用率。
+`tf.data` 通过尝试最大程度地利用可用资源来实现高吞吐量。通常，即使在 GPU 或 TPU 等加速器上运行模型，`tf.data` 流水线仍在 CPU 上运行。您可以使用 [sar](https://linux.die.net/man/1/sar) 和 [htop](https://en.wikipedia.org/wiki/Htop) 等工具，或者在 [Cloud Monitoring 控制台](https://cloud.google.com/monitoring/docs/monitoring_in_console)中（如果在 GCP 上运行）检查 CPU 利用率。
 
-**如果利用率较低**，这表明您的输入流水线可能没有充分利用主机 CPU。您应当参考 [tf.data 性能指南](https://www.tensorflow.org/guide/data_performance)来了解最佳做法。如果您采用了最佳做法，但利用率和吞吐量仍然很低，请阅读下面的[瓶颈分析](#4_bottleneck_analysis)部分。
+**如果利用率较低**，这表明您的输入流水线可能没有充分利用主机 CPU。您应当参考 [tf.data 性能指南](https://tensorflow.google.cn/guide/data_performance)来了解最佳做法。如果您采用了最佳做法，但利用率和吞吐量仍然很低，请阅读下面的[瓶颈分析](#4_bottleneck_analysis)部分。
 
 **如果利用率接近资源限制**，为了进一步提高性能，您需要提高输入流水线的效率（例如，避免不必要的计算）或者卸载计算。
 
@@ -106,7 +106,7 @@ dataset = dataset.prefetch(1)
 
 请注意，大多数主机输入流水线中的最终（最外层）转换都是 `Iterator::Model` 事件。`tf.data` 运行时会自动引入模型转换，该转换用于检测和自动调整输入流水线性能。
 
-如果您的作业正在使用[分配策略](https://www.tensorflow.org/guide/distributed_training)，则 Trace Viewer 将包含与设备输入流水线相对应的其他事件。设备流水线的最外层转换（嵌套在 `IteratorGetNextOp::DoCompute` 或 `IteratorGetNextAsOptionalOp::DoCompute` 下）将是一个具有上游 `Iterator::Generator` 事件的 `Iterator::Prefetch` 事件。您可以通过搜索 `Iterator::Model` 事件来找到相应的主机流水线。
+如果您的作业正在使用[分配策略](https://tensorflow.google.cn/guide/distributed_training)，则 Trace Viewer 将包含与设备输入流水线相对应的其他事件。设备流水线的最外层转换（嵌套在 `IteratorGetNextOp::DoCompute` 或 `IteratorGetNextAsOptionalOp::DoCompute` 下）将是一个具有上游 `Iterator::Generator` 事件的 `Iterator::Prefetch` 事件。您可以通过搜索 `Iterator::Model` 事件来找到相应的主机流水线。
 
 ##### 示例 1
 
@@ -157,7 +157,7 @@ dataset = dataset.interleave(tf.data.TFRecordDataset,
 
 ##### 转换数据集
 
-如果您已确定中间 `tf.data` 转换为瓶颈，则可以通过并行处理转换或者[缓存计算](https://www.tensorflow.org/guide/data_performance#caching)来解决此瓶颈，前提是您的数据适合装入内存并且适当。某些转换（例如 `Map`）具有并行的对应项；<a data-md-type="link" href="https://www.tensorflow.org/guide/data_performance#parallelizing_data_transformation">`tf.data` 性能指南演示了</a>如何并行处理这些对应项。其他转换（例如 `Filter`、`Unbatch` 和 `Batch`）本质上是依序的；您可以通过引入“外部并行”来并行处理它们。例如，假设您的输入流水线最初如下所示，其中瓶颈为 `Batch`：
+如果您已确定中间 `tf.data` 转换为瓶颈，则可以通过并行处理转换或者[缓存计算](https://tensorflow.google.cn/guide/data_performance#caching)来解决此瓶颈，前提是您的数据适合装入内存并且适当。某些转换（例如 `Map`）具有并行的对应项；<a data-md-type="link" href="https://tensorflow.google.cn/guide/data_performance#parallelizing_data_transformation" class="">`tf.data` 性能指南演示了</a>如何并行处理这些对应项。其他转换（例如 `Filter`、`Unbatch` 和 `Batch`）本质上是依序的；您可以通过引入“外部并行”来并行处理它们。例如，假设您的输入流水线最初如下所示，其中瓶颈为 `Batch`：
 
 ```python
 filenames = tf.data.Dataset.list_files(file_path, shuffle=is_training)
@@ -183,7 +183,7 @@ dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
 ## 其他资源
 
-- 关于如何编写高性能 `tf.data` 输入流水线的 [tf.data 性能指南](https://www.tensorflow.org/guide/data_performance)
+- 关于如何编写高性能 `tf.data` 输入流水线的 [tf.data 性能指南](https://tensorflow.google.cn/guide/data_performance)
 - [TensorFlow 内部视频：`tf.data` 最佳做法](https://www.youtube.com/watch?v=ZnukSLKEw34)
-- [Profiler 指南](https://www.tensorflow.org/guide/profiler)
-- [Colab 中的 Profiler 教程](https://www.tensorflow.org/tensorboard/tensorboard_profiling_keras)
+- [Profiler 指南](https://tensorflow.google.cn/guide/profiler)
+- [Colab 中的 Profiler 教程](https://tensorflow.google.cn/tensorboard/tensorboard_profiling_keras)
